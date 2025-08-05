@@ -23,7 +23,4 @@ jobs:
 
       - name: Sync files to S3 bucket
         run: |
-          aws s3 sync . s3://students-profiles-devops-cloud-computing \
-            --exclude "*" \
-            --include "index.html" \
-            --acl public-read
+          aws s3 cp index.html s3://students-profiles-devops-cloud-computing/index.html
