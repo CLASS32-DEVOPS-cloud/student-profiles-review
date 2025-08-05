@@ -6,7 +6,7 @@ on:
     paths:
       - 'index.html'
   push:
-    branches: [ prof ]
+    branches: [ master ]
     paths:
       - 'index.html'
 
@@ -15,21 +15,27 @@ jobs:
     if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout code
+      - name: Checkout code with full history
         uses: actions/checkout@v3
-      
-      - name: Validate HTML
-        uses: actions/github-script@v6
         with:
-          script: |
-            const changedFiles = context.payload.pull_request.changed_files
-            if (changedFiles > 1 || !context.payload.pull_request.changed_files.includes('index.html')) {
-              core.setFailed('Only index.html file changes are allowed in this PR')
-            }
+          fetch-depth: 0  # Required to get changed files list
+      
+      - name: Verify only index.html is changed
+        run: |
+          # Get list of changed files
+          CHANGED_FILES=$(git diff --name-only HEAD^ HEAD)
+          echo "Changed files: $CHANGED_FILES"
+          
+          # Count changed files that aren't index.html
+          OTHER_CHANGES=$(echo "$CHANGED_FILES" | grep -v '^index.html$' | wc -l)
+          
+          if [ "$OTHER_CHANGES" -ne 0 ]; then
+            echo "::error::Only index.html file changes are allowed in this PR"
+            exit 1
+          fi
 
   deploy:
     if: github.event_name == 'push' || (github.event_name == 'pull_request' && github.event.action == 'closed' && github.event.pull_request.merged)
-    needs: validate
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
